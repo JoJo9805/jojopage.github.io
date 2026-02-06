@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Sinh Viên</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --bg-color: #f4f7f6;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        h2 { color: #333; text-align: center; margin-bottom: 25px; }
+
+        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        input { padding: 12px; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--primary-color); box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
+
+        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.2s; }
+        #btn-save { background: var(--primary-color); color: white; width: 100%; font-size: 16px; }
+        #btn-save:hover { background: #357abd; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+        th { background: #f8f9fa; color: #555; text-align: left; padding: 15px; border-bottom: 2px solid #eee; }
+        td { padding: 15px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        tr:hover { background: #fcfcfc; }
+
+        .btn-edit { background: #f39c12; color: white; margin-right: 5px; }
+        .btn-delete { background: var(--danger-color); color: white; }
+        button:active { transform: scale(0.98); }
+
+        .empty-msg { text-align: center; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>DANH SÁCH SINH VIÊN</h2>
+
+    <div class="form-group">
+        <input type="hidden" id="edit-index" value="-1">
+        <input type="text" id="maSV" placeholder="Mã SV">
+        <input type="text" id="hoTen" placeholder="Họ và tên">
+        <input type="date" id="ngaySinh">
+        <input type="text" id="lopHoc" placeholder="Lớp học">
+        <input type="number" id="gpa" placeholder="GPA" step="0.1" min="0" max="4">
+    </div>
+    <button id="btn-save" onclick="handleSave()">Thêm Sinh Viên Mới</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Mã SV</th>
+                <th>Họ Tên</th>
+                <th>Ngày Sinh</th>
+                <th>Lớp</th>
+                <th>GPA</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody id="student-table-body"></tbody>
+    </table>
+    <div id="no-data" class="empty-msg">Chưa có dữ liệu sinh viên.</div>
+</div>
+
+<script>
+    class SinhVien {
+        constructor(maSV, hoTen, ngaySinh, lopHoc, gpa) {
+            this.maSV = maSV;
+            this.hoTen = hoTen;
+            this.ngaySinh = ngaySinh;
+            this.lopHoc = lopHoc;
+            this.gpa = parseFloat(gpa).toFixed(1);
+        }
+
+        update(newData) {
+            this.maSV = newData.maSV;
+            this.hoTen = newData.hoTen;
+            this.ngaySinh = newData.ngaySinh;
+            this.lopHoc = newData.lopHoc;
+            this.gpa = parseFloat(newData.gpa).toFixed(1);
+        }
+    }
+
+    let students = [];
+
+    function handleSave() {
+        const data = {
+            maSV: document.getElementById('maSV').value.trim(),
+            hoTen: document.getElementById('hoTen').value.trim(),
+            ngaySinh: document.getElementById('ngaySinh').value,
+            lopHoc: document.getElementById('lopHoc').value.trim(),
+            gpa: document.getElementById('gpa').value
+        };
+
+        if (!data.maSV || !data.hoTen) {
+            alert("Vui lòng nhập Mã SV và Họ Tên!");
+            return;
+        }
+
+        const editIndex = document.getElementById('edit-index').value;
+
+        if (editIndex === "-1") {
+            const newStudent = new SinhVien(data.maSV, data.hoTen, data.ngaySinh, data.lopHoc, data.gpa);
+            students.push(newStudent);
+        } else {
+            students[editIndex].update(data);
+            document.getElementById('edit-index').value = "-1";
+            document.getElementById('btn-save').innerText = "Thêm Sinh Viên Mới";
+            document.getElementById('btn-save').style.background = "#4a90e2";
+        }
+
+        clearForm();
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('student-table-body');
+        const noData = document.getElementById('no-data');
+        tbody.innerHTML = "";
+        
+        if (students.length === 0) {
+            noData.style.display = "block";
+            return;
+        }
+        
+        noData.style.display = "none";
+
+        students.forEach((sv, index) => {
+            const row = `<tr>
+                <td><strong>${sv.maSV}</strong></td>
+                <td>${sv.hoTen}</td>
+                <td>${sv.ngaySinh}</td>
+                <td>${sv.lopHoc}</td>
+                <td>${sv.gpa}</td>
+                <td>
+                    <button class="btn-edit" onclick="prepareEdit(${index})">Sửa</button>
+                    <button class="btn-delete" onclick="deleteStudent(${index})">Xóa</button>
+                </td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function prepareEdit(index) {
+        const sv = students[index];
+        document.getElementById('maSV').value = sv.maSV;
+        document.getElementById('hoTen').value = sv.hoTen;
+        document.getElementById('ngaySinh').value = sv.ngaySinh;
+        document.getElementById('lopHoc').value = sv.lopHoc;
+        document.getElementById('gpa').value = sv.gpa;
+        
+        document.getElementById('edit-index').value = index;
+        document.getElementById('btn-save').innerText = "Lưu Thay Đổi";
+        document.getElementById('btn-save').style.background = "#2ecc71";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteStudent(index) {
+        if(confirm("Xác nhận xóa?")) {
+            students.splice(index, 1);
+            renderTable();
+        }
+    }
+
+    function clearForm() {
+        document.getElementById('maSV').value = "";
+        document.getElementById('hoTen').value = "";
+        document.getElementById('ngaySinh').value = "";
+        document.getElementById('lopHoc').value = "";
+        document.getElementById('gpa').value = "";
+    }
+</script>
+
+</body>
+</html>
